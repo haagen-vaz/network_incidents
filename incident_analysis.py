@@ -95,3 +95,73 @@ for sev in severity_cost:
     total = severity_cost[sev]
     avg   = total / severity_count[sev] if severity_count[sev] else 0.0
     print(f" - {sev:<8}: {sek_fmt(total)} SEK  (snitt {sek_fmt(avg)} SEK/incident)")
+
+
+# Samla statistik per site i en ordbok
+site_stats = {}  # {"Huvudkontor": {...}, "Datacenter": {...}, ...}
+
+for row in rows:
+    site = (row["site"] or "").strip()
+    sev  = (row["severity"] or "").strip().lower()
+    mins = to_int_safe(row["resolution_minutes"], 0)
+    cost = parse_cost_sek(row["cost_sek"], 0.0)
+
+    if site not in site_stats:
+        site_stats[site] = {
+            "total_incidents": 0,
+            "critical_incidents": 0,
+            "high_incidents": 0,
+            "medium_incidents": 0,
+            "low_incidents": 0,
+            "sum_resolution": 0,
+            "total_cost_sek": 0.0,
+        }
+
+    site_stats[site]["total_incidents"] += 1
+    key = f"{sev}_incidents"          # bygger t.ex. "high_incidents"
+    if key in site_stats[site]:
+        site_stats[site][key] += 1
+    site_stats[site]["sum_resolution"] += mins
+    site_stats[site]["total_cost_sek"] += cost
+
+# Räkna ut genomsnittlig resolution-tid per site
+for site_name, data in site_stats.items():
+    count = data["total_incidents"]
+    avg = (data["sum_resolution"] / count) if count else 0.0
+    data["avg_resolution_minutes"] = round(avg, 2)
+    data["total_cost_sek"] = round(data["total_cost_sek"], 2)
+
+# Skriv CSV med sammanfattning per site
+OUT_DIR = "out"
+os.makedirs(OUT_DIR, exist_ok=True)
+out_path = os.path.join(OUT_DIR, "incidents_by_site.csv")
+
+fieldnames = [
+    "site",
+    "total_incidents",
+    "critical_incidents",
+    "high_incidents",
+    "medium_incidents",
+    "low_incidents",
+    "avg_resolution_minutes",
+    "total_cost_sek",
+]
+
+with open(out_path, "w", encoding="utf-8", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    writer.writeheader()
+    for site in sorted(site_stats.keys()):
+        d = site_stats[site]
+        writer.writerow({
+            "site": site,
+            "total_incidents": d["total_incidents"],
+            "critical_incidents": d["critical_incidents"],
+            "high_incidents": d["high_incidents"],
+            "medium_incidents": d["medium_incidents"],
+            "low_incidents": d["low_incidents"],
+            "avg_resolution_minutes": d["avg_resolution_minutes"],
+            # punkt som decimal funkar fint i Excel
+            "total_cost_sek": f'{d["total_cost_sek"]:.2f}',
+        })
+
+print(f"[OK] Skrev {out_path}")
