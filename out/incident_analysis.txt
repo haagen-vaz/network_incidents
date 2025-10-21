@@ -19,31 +19,32 @@ Medium    :  17 st (33%) - Genomsnitt:  113 min resolution, 3 506,68 SEK/inciden
 Low       :  12 st (23%) - Genomsnitt:  107 min resolution, 1 612,79 SEK/incident
 
 STÖRSTA PÅVERKAN (>100 användare)
--------------------------
-- TECH-2024-006 Datacenter   SW-DC-TOR-02     users=156  sev=critical  kostnad= 23 456,90  SEK  performance
-- TECH-2024-014 Datacenter   SW-DC-TOR-02     users=123  sev=critical  kostnad= 15 678,75  SEK  hardware
-- TECH-2024-022 Datacenter   SW-DC-TOR-02     users=189  sev=critical  kostnad= 34 567,50  SEK  connectivity
-- TECH-2024-026 Datacenter   SW-DC-CORE-02    users=234  sev=medium    kostnad= 5 234,75  SEK  performance
-- TECH-2024-030 Datacenter   FW-DC-02         users=145  sev=high      kostnad= 8 765,50  SEK  security
-- TECH-2024-034 Datacenter   SW-DC-TOR-02     users=167  sev=high      kostnad= 12 345,75  SEK  hardware
-- TECH-2024-039 Datacenter   LB-DC-02         users=198  sev=high      kostnad= 11 234,25  SEK  performance
-- TECH-2024-047 Datacenter   SW-DC-CORE-01    users=123  sev=medium    kostnad= 5 789,75  SEK  performance
-- TECH-2024-052 Datacenter   FW-DC-01         users=178  sev=high      kostnad= 8 456,25  SEK  security
+--------------------------------------------------------------------------------
+ticket        site           device             users sev           kostnad  category
+--------------------------------------------------------------------------------
+TECH-2024-006 Datacenter     SW-DC-TOR-02       156 critical  23 456,90 SEK  performance
+TECH-2024-014 Datacenter     SW-DC-TOR-02       123 critical  15 678,75 SEK  hardware
+TECH-2024-022 Datacenter     SW-DC-TOR-02       189 critical  34 567,50 SEK  connectivity
+TECH-2024-026 Datacenter     SW-DC-CORE-02      234 medium     5 234,75 SEK  performance
+TECH-2024-030 Datacenter     FW-DC-02           145 high       8 765,50 SEK  security
+TECH-2024-034 Datacenter     SW-DC-TOR-02       167 high      12 345,75 SEK  hardware
+TECH-2024-039 Datacenter     LB-DC-02           198 high      11 234,25 SEK  performance
+TECH-2024-047 Datacenter     SW-DC-CORE-01      123 medium     5 789,75 SEK  performance
+TECH-2024-052 Datacenter     FW-DC-01           178 high       8 456,25 SEK  security
 
 TOPP 5 DYRASTE INCIDENTS
--------------------------
-- TECH-2024-024 SW-ACCESS-03     Huvudkontor     critical  45 678,90 SEK  (hardware)
-- TECH-2024-022 SW-DC-TOR-02     Datacenter      critical  34 567,50 SEK  (connectivity)
-- TECH-2024-040 RT-LAGER-01      Lager           critical  28 765,50 SEK  (connectivity)
-- TECH-2024-049 RT-MAL-01        Kontor Malmö    critical  26 789,75 SEK  (hardware)
-- TECH-2024-037 RT-DR-01         Säkerhetskopia  critical  24 567,25 SEK  (connectivity)
+--------------------------------------------------------------------------------
+ticket        device              site           sev            kostnad  category
+--------------------------------------------------------------------------------
+TECH-2024-024 SW-ACCESS-03       Huvudkontor    critical  45 678,90 SEK  hardware
+TECH-2024-022 SW-DC-TOR-02       Datacenter     critical  34 567,50 SEK  connectivity
+TECH-2024-040 RT-LAGER-01        Lager          critical  28 765,50 SEK  connectivity
+TECH-2024-049 RT-MAL-01          Kontor Malmö   critical  26 789,75 SEK  hardware
+TECH-2024-037 RT-DR-01           Säkerhetskopia critical  24 567,25 SEK  connectivity
+
 
 REKOMMENDERAD ÅTGÄRDSPLAN
 -------------------------
 - SW-DC-TOR-02 (Datacenter): 4 incidenter, hög allvarlighetsgrad (3.8) → Byt ut eller gör hårdvarugenomgång av sw.
 - RT-LAGER-01 (Lager): 3 incidenter, medel allvarlighetsgrad (2.7) → Planera förebyggande underhåll eller firmware-uppdatering.
 - SW-DR-01 (Säkerhetskopia): 3 incidenter, låg allvarlighetsgrad → Övervaka utvecklingen under kommande period.
-
-DATATILLFÖRLITLIGHET
--------------------------
-✓ Inga dataproblem upptäckta – alla rader innehåller giltiga värden.

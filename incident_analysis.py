@@ -455,29 +455,55 @@ lines.append("")
 
 # största påverkan
 lines.append("STÖRSTA PÅVERKAN (>100 användare)")
-lines.append("-" * 25)
+lines.append("-" * 80)
+
 if big_impact:
+    # skriv en tydlig rubrikrad för kolumnerna
+    lines.append(f"{'ticket':<13} {'site':<14} {'device':<18} {'users':>5} {'sev':<6} {'kostnad':>14}  {'category'}")
+    lines.append("-" * 80)
+
     for r in big_impact:
-        users = users_int_safe(r.get("affected_users"), 0)
-        cost = sek_fmt(parse_cost_sek(r.get("cost_sek"), 0.0))
+        tid  = (r.get('ticket_id') or '')
+        site = (r.get('site') or '')
+        dev  = (r.get('device_hostname') or '')
+        sev  = (r.get('severity') or '').strip().lower()
+        users = users_int_safe(r.get('affected_users'), 0)
+        cost_sw = f"{sek_fmt(parse_cost_sek(r.get('cost_sek'), 0.0))} SEK"
+        cat  = (r.get('category') or '')
+
+        # justera kolumner så siffror och text radar upp sig snyggt
         lines.append(
-            f"- {r.get('ticket_id')} {(r.get('site') or ''):<12} {(r.get('device_hostname') or ''):<15}  "
-            f"users={users:<3}  sev={(r.get('severity') or '').strip().lower():<8}  "
-            f"kostnad= {cost}  SEK  {r.get('category')}"
+            f"{tid:<12} {site:<14} {dev:<16} {users:>5} {sev:<8} {cost_sw:>14}  {cat}"
         )
 else:
     lines.append("- (inga händelser över 100 användare)")
 lines.append("")
 
+
 # topp 5 dyraste
 lines.append("TOPP 5 DYRASTE INCIDENTS")
-lines.append("-" * 25)
-for r in top5_costly:
-    cost = sek_fmt(parse_cost_sek(r.get("cost_sek"), 0.0))
-    lines.append(
-        f"- {r.get('ticket_id')} {(r.get('device_hostname') or ''):<15}  {(r.get('site') or ''):<14}  "
-        f"{(r.get('severity') or '').strip().lower():<8}  {cost} SEK  ({r.get('category')})"
-    )
+lines.append("-" * 80)
+
+if top5_costly:
+    # kolumnrubriker
+    lines.append(f"{'ticket':<13} {'device':<19} {'site':<14} {'sev':<8} {'kostnad':>13}  {'category'}")
+    lines.append("-" * 80)
+
+    for r in top5_costly:
+        tid  = (r.get('ticket_id') or '')
+        dev  = (r.get('device_hostname') or '')
+        site = (r.get('site') or '')
+        sev  = (r.get('severity') or '').strip().lower()
+        cost_sw = f"{sek_fmt(parse_cost_sek(r.get('cost_sek'), 0.0))} SEK"
+        cat  = (r.get('category') or '')
+
+        lines.append(
+            f"{tid:<12} {dev:<18} {site:<14} {sev:<8} {cost_sw:>14}  {cat}"
+        )
+else:
+    lines.append("- (inga data)")
+lines.append("")
+
 
 
 # REKOMMENDERAD ÅTGÄRDSPLAN (läggs till i rapporten)
@@ -517,21 +543,6 @@ if problem_devices:
 else:
     lines.append("- Inga återkommande problem upptäckta över tröskeln 3 incidenter.")
 
-# Datakvalitetskontroll (hur många rader innehöll problem)
-error_rows = 0  # kan ändras om du vill räkna fel i framtiden
-
-# Enkel kontroll: räkna rader som saknar viktiga fält
-for i, r in enumerate(rows, start=1):
-    if not r.get("severity") or not r.get("cost_sek") or not r.get("site"):
-        error_rows += 1
-
-lines.append("")
-lines.append("DATATILLFÖRLITLIGHET")
-lines.append("-" * 25)
-if error_rows == 0:
-    lines.append("✓ Inga dataproblem upptäckta – alla rader innehåller giltiga värden.")
-else:
-    lines.append(f"⚠ {error_rows} rader hade ofullständig data (t.ex. saknad kostnad eller severity).")
 
 
 # skriv filen
