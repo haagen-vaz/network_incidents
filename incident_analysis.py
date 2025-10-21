@@ -1,6 +1,7 @@
 
 import csv   # För att läsa CSV-filer
 import os    # För att kunna skapa mappar och hantera filvägar
+import datetime
 
 
 # Läs in CSV-filen till en lista av dictionaries
@@ -419,6 +420,11 @@ if min_week is not None and max_week is not None:
 lines.append(f"Total incidents: {total_incidents} st")
 lines.append(f"Total kostnad: {sek_fmt(total_cost)} SEK")
 lines.append("")
+# Datumstämpel för när rapporten genererades
+today = datetime.date.today()
+lines.append(f"Rapport genererad: {today.strftime('%Y-%m-%d')}")
+lines.append("")  # tom rad för luft
+
 
 # executive summary
 lines.append("EXECUTIVE SUMMARY")
@@ -472,6 +478,46 @@ for r in top5_costly:
         f"- {r.get('ticket_id')} {(r.get('device_hostname') or ''):<15}  {(r.get('site') or ''):<14}  "
         f"{(r.get('severity') or '').strip().lower():<8}  {cost} SEK  ({r.get('category')})"
     )
+
+
+# REKOMMENDERAD ÅTGÄRDSPLAN (läggs till i rapporten)
+
+lines.append("")
+lines.append("REKOMMENDERAD ÅTGÄRDSPLAN")
+lines.append("-" * 25)
+
+# Identifiera enheter med återkommande problem
+problem_devices = [
+    d for d in problem_rows if d["incident_count"] >= 3
+]
+
+if problem_devices:
+    for d in problem_devices:
+        name = d["device_hostname"]
+        site = d["site"]
+        inc = d["incident_count"]
+        avg_sev = d["avg_severity_score"]
+        dev_type = d["device_type"]
+
+        if avg_sev >= 3.5:
+            lines.append(
+                f"- {name} ({site}): {inc} incidenter, hög allvarlighetsgrad ({avg_sev:.1f}) "
+                f"→ Byt ut eller gör hårdvarugenomgång av {dev_type}."
+            )
+        elif avg_sev >= 2.5:
+            lines.append(
+                f"- {name} ({site}): {inc} incidenter, medel allvarlighetsgrad ({avg_sev:.1f}) "
+                f"→ Planera förebyggande underhåll eller firmware-uppdatering."
+            )
+        else:
+            lines.append(
+                f"- {name} ({site}): {inc} incidenter, låg allvarlighetsgrad "
+                f"→ Övervaka utvecklingen under kommande period."
+            )
+else:
+    lines.append("- Inga återkommande problem upptäckta över tröskeln 3 incidenter.")
+
+
 
 # skriv filen
 os.makedirs(OUT_DIR, exist_ok=True)
