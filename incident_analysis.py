@@ -307,6 +307,44 @@ with open(out_path_cost, "w", encoding="utf-8", newline="") as f:
 print(f"[OK] Skrev {out_path_cost}")
 
 
+# Genomsnittlig impact score per kategori 
+
+# skapar en ordbok där varje kategori får sin totalsumma och räknare
+category_stats = {}   # t.ex. {"wifi": {"sum": 45.6, "count": 6}, ...}
+
+for row in rows:
+    category = (row.get("category") or "").strip().lower()
+    impact = to_float_safe(row.get("impact_score"), 0.0)  # samma helper som används i cost_analysis
+
+    if category not in category_stats:
+        category_stats[category] = {"sum": 0.0, "count": 0}
+
+    category_stats[category]["sum"] += impact
+    category_stats[category]["count"] += 1
+
+# Räkna fram snittet och sortera på högst medel-impact först
+category_avg = []
+for cat, vals in category_stats.items():
+    count = vals["count"]
+    avg = vals["sum"] / count if count else 0.0
+    category_avg.append((cat, round(avg, 2), count))
+
+category_avg.sort(key=lambda x: -x[1])  # sortera efter högsta medelvärde
+
+# Skriv ut i terminalen
+print("\nGenomsnittlig impact score per kategori:")
+for cat, avg, count in category_avg:
+    print(f" - {cat:<15}: {avg:.2f} (antal {count})")
+
+# Skriv även CSV-fil till Excel
+out_path_cat = os.path.join(OUT_DIR, "impact_by_category.csv")
+with open(out_path_cat, "w", encoding="utf-8", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["category", "avg_impact_score", "incident_count"])
+    for cat, avg, count in category_avg:
+        writer.writerow([cat, f"{avg:.2f}", count])
+
+print(f"[OK] Skrev {out_path_cat}")
 
 
 
