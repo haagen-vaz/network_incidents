@@ -165,3 +165,143 @@ with open(out_path, "w", encoding="utf-8", newline="") as f:
         })
 
 print(f"[OK] Skrev {out_path}")
+
+
+# --- Problem devices: gruppera per enhet och skriv CSV ---
+
+# Omvandla severity till ett numeriskt "allvarlighetsvärde" för snittberäkning
+severity_score = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+
+# Samla statistik per device
+dev_stats = {}  # t.ex. {"SW-DC-TOR-02": {...}, ...}
+
+for row in rows:
+    host = (row["device_hostname"] or "").strip()
+    site = (row["site"] or "").strip()
+    sev  = (row["severity"] or "").strip().lower()
+    cost = parse_cost_sek(row["cost_sek"], 0.0)
+    users = to_int_safe(row.get("affected_users"), 0)
+
+    if host not in dev_stats:
+        dev_stats[host] = {
+            "device_hostname": host,
+            "site": site,
+            # device_type = prefix före första "-" (ex: "SW" i "SW-DC-TOR-02")
+            "device_type": host.split("-")[0].lower() if "-" in host else "",
+            "incident_count": 0,
+            "sum_sev_score": 0.0,
+            "total_cost": 0.0,
+            "sum_users": 0,
+        }
+
+    dev_stats[host]["incident_count"] += 1
+    dev_stats[host]["sum_sev_score"] += severity_score.get(sev, 0)
+    dev_stats[host]["total_cost"] += cost
+    dev_stats[host]["sum_users"] += users
+
+# Gör en lista med färdiga rader och räkna snitt
+problem_rows = []
+for d in dev_stats.values():
+    cnt = d["incident_count"]
+    avg_sev = (d["sum_sev_score"] / cnt) if cnt else 0.0
+    avg_usr = (d["sum_users"] / cnt) if cnt else 0.0
+    problem_rows.append({
+        "device_hostname": d["device_hostname"],
+        "site": d["site"],
+        "device_type": d["device_type"],
+        "incident_count": cnt,
+        "avg_severity_score": round(avg_sev, 2),
+        "total_cost_sek": round(d["total_cost"], 2),
+        "avg_affected_users": round(avg_usr, 2),
+        # Vi har inte förra veckans lista i denna uppgift, så markera som okänt
+        "in_last_weeks_warnings": "no_data",
+    })
+
+# Sortera: flest incidents först, sedan högst total kostnad
+problem_rows.sort(key=lambda r: (-r["incident_count"], -r["total_cost_sek"]))
+
+# Skriv CSV
+out_path_pd = os.path.join(OUT_DIR, "problem_devices.csv")
+with open(out_path_pd, "w", encoding="utf-8", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=[
+        "device_hostname","site","device_type",
+        "incident_count","avg_severity_score",
+        "total_cost_sek","avg_affected_users","in_last_weeks_warnings"
+    ])
+    writer.writeheader()
+    for r in problem_rows:
+        # se till att kostnaden skrivs med punkt som decimal i CSV
+        r_out = dict(r)
+        r_out["total_cost_sek"] = f'{r["total_cost_sek"]:.2f}'
+        writer.writerow(r_out)
+
+print(f"[OK] Skrev {out_path_pd}")
+
+
+
+#  cost_analysis.csv 
+
+# Liten hjälpare: säkert float-parsning (tål svenska komma och mellanslag)
+def to_float_safe(value, default=0.0):
+    s = (value or "").strip()
+    if s == "":
+        return default
+    # ta bort ev. smalt/vanligt mellanslag som tusentalsavgränsare
+    s = s.replace("\u202f", " ").replace(" ", "")
+    # byt komma till punkt så Python kan läsa decimaler
+    s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return default
+
+# Samla statistik per vecka i en ordbok
+# Exempelstruktur: {36: {"total_cost": 0.0, "count": 0, "impact_sum": 0.0}}
+week_stats = {}
+
+for row in rows:
+    # Hämta veckonummer som int (tål "36", "36.0", "36,0")
+    week = to_int_safe(row.get("week_number"), 0)
+    # Kostnad i SEK som float (svensk parsing)
+    cost = parse_cost_sek(row.get("cost_sek"), 0.0)
+    # Impact score (kan vara tom sträng → 0.0)
+    impact = to_float_safe(row.get("impact_score"), 0.0)
+
+    if week not in week_stats:
+        week_stats[week] = {"total_cost": 0.0, "count": 0, "impact_sum": 0.0}
+
+    week_stats[week]["total_cost"] += cost      # summera kostnaden för veckan
+    week_stats[week]["count"] += 1              # räkna incidenter i veckan
+    week_stats[week]["impact_sum"] += impact    # summera impact för snitt senare
+
+# Gör rader klara för CSV 
+weekly_rows = []
+for week in sorted(week_stats.keys()):
+    total_cost = round(week_stats[week]["total_cost"], 2)
+    count = week_stats[week]["count"]
+    avg_impact = round(
+        (week_stats[week]["impact_sum"] / count) if count else 0.0, 2
+    )
+
+    weekly_rows.append({
+        "week_number": week,
+        "total_incidents": count,
+        # skriv ut med punkt som decimal så Excel/Sheets läser talet
+        "total_cost_sek": f"{total_cost:.2f}",
+        "avg_impact_score": avg_impact,
+    })
+
+# Skriv CSV till out/cost_analysis.csv
+os.makedirs(OUT_DIR, exist_ok=True)
+out_path_cost = os.path.join(OUT_DIR, "cost_analysis.csv")
+
+with open(out_path_cost, "w", encoding="utf-8", newline="") as f:
+    writer = csv.DictWriter(
+        f,
+        fieldnames=["week_number", "total_incidents", "total_cost_sek", "avg_impact_score"]
+    )
+    writer.writeheader()
+    for r in weekly_rows:
+        writer.writerow(r)
+
+print(f"[OK] Skrev {out_path_cost}")
