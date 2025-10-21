@@ -517,6 +517,21 @@ if problem_devices:
 else:
     lines.append("- Inga återkommande problem upptäckta över tröskeln 3 incidenter.")
 
+# Datakvalitetskontroll (hur många rader innehöll problem)
+error_rows = 0  # kan ändras om du vill räkna fel i framtiden
+
+# Enkel kontroll: räkna rader som saknar viktiga fält
+for i, r in enumerate(rows, start=1):
+    if not r.get("severity") or not r.get("cost_sek") or not r.get("site"):
+        error_rows += 1
+
+lines.append("")
+lines.append("DATATILLFÖRLITLIGHET")
+lines.append("-" * 25)
+if error_rows == 0:
+    lines.append("✓ Inga dataproblem upptäckta – alla rader innehåller giltiga värden.")
+else:
+    lines.append(f"⚠ {error_rows} rader hade ofullständig data (t.ex. saknad kostnad eller severity).")
 
 
 # skriv filen

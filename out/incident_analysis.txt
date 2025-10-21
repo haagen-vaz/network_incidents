@@ -43,3 +43,7 @@ REKOMMENDERAD ÅTGÄRDSPLAN
 - SW-DC-TOR-02 (Datacenter): 4 incidenter, hög allvarlighetsgrad (3.8) → Byt ut eller gör hårdvarugenomgång av sw.
 - RT-LAGER-01 (Lager): 3 incidenter, medel allvarlighetsgrad (2.7) → Planera förebyggande underhåll eller firmware-uppdatering.
 - SW-DR-01 (Säkerhetskopia): 3 incidenter, låg allvarlighetsgrad → Övervaka utvecklingen under kommande period.
+
+DATATILLFÖRLITLIGHET
+-------------------------
+✓ Inga dataproblem upptäckta – alla rader innehåller giltiga värden.
