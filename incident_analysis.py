@@ -305,3 +305,140 @@ with open(out_path_cost, "w", encoding="utf-8", newline="") as f:
         writer.writerow(r)
 
 print(f"[OK] Skrev {out_path_cost}")
+
+
+
+
+
+# Textrapport
+
+
+# Hämta heltal säkert för affected_users i listningen nedan
+def users_int_safe(v, default=0):
+    s = (v or "").strip()
+    if s == "":
+        return default
+    try:
+        return int(float(s.replace(",", ".")))
+    except ValueError:
+        return default
+
+# Sammanställ grunddata till rapporten
+total_incidents = len(rows)  # hur många rader totalt
+total_cost = sum(parse_cost_sek(r.get("cost_sek"), 0.0) for r in rows)  # summera kostnader
+
+# period (min/max vecka)
+all_weeks = [to_int_safe(r.get("week_number"), 0) for r in rows if r.get("week_number") is not None]
+min_week = min(all_weeks) if all_weeks else None
+max_week = max(all_weeks) if all_weeks else None
+
+# genomsnittlig resolution per severity
+def avg_res_min(sev):
+    cnt = severity_cnt.get(sev, 0)
+    tot = severity_sum.get(sev, 0)
+    return (tot / cnt) if cnt else 0.0
+
+# genomsnittlig kostnad per severity
+from collections import defaultdict
+sev_costs = defaultdict(float)
+sev_counts = defaultdict(int)
+for r in rows:
+    sev = (r.get("severity") or "").strip().lower()
+    c = parse_cost_sek(r.get("cost_sek"), 0.0)
+    sev_costs[sev] += c
+    sev_counts[sev] += 1
+def avg_cost_sek(sev):
+    cnt = sev_counts.get(sev, 0)
+    return (sev_costs.get(sev, 0.0) / cnt) if cnt else 0.0
+
+# incidents som påverkat fler än 100 användare
+big_impact = [r for r in rows if users_int_safe(r.get("affected_users"), 0) > 100]
+
+# topp 5 dyraste incidents
+top5_costly = sorted(
+    rows,
+    key=lambda r: parse_cost_sek(r.get("cost_sek"), 0.0),
+    reverse=True
+)[:5]
+
+# lista alla sites och hitta de som saknar critical
+sites = sorted({ (r.get("site") or "").strip() for r in rows })
+site_crit = { s: 0 for s in sites }
+for r in rows:
+    s = (r.get("site") or "").strip()
+    sev = (r.get("severity") or "").strip().lower()
+    if sev == "critical":
+        site_crit[s] += 1
+sites_no_critical = [s for s in sites if site_crit.get(s, 0) == 0]
+
+# bygg rad för rad i rapporten
+lines = []
+lines.append("=" * 80)
+lines.append(" " * 22 + "INCIDENT ANALYSIS - SENASTE PERIODEN")
+lines.append("=" * 80)
+if min_week is not None and max_week is not None:
+    lines.append(f"Analysperiod (veckor): {min_week} till {max_week}")
+lines.append(f"Total incidents: {total_incidents} st")
+lines.append(f"Total kostnad: {sek_fmt(total_cost)} SEK")
+lines.append("")
+
+# executive summary
+lines.append("EXECUTIVE SUMMARY")
+lines.append("-" * 25)
+if sites_no_critical:
+    lines.append(f"✓ POSITIVT: Inga critical incidents på {', '.join(sites_no_critical)}.")
+if top5_costly:
+    t0 = top5_costly[0]
+    lines.append(
+        f"⚠ KOSTNAD: Dyraste incident: {sek_fmt(parse_cost_sek(t0.get('cost_sek'), 0.0))} SEK "
+        f"({t0.get('device_hostname')} {t0.get('category')})."
+    )
+lines.append("")
+
+# incidents per severity
+lines.append("INCIDENTS PER SEVERITY")
+lines.append("-" * 25)
+for sev in ["critical", "high", "medium", "low"]:
+    cnt = severity_cnt.get(sev, 0)
+    pct = (cnt / total_incidents * 100) if total_incidents else 0
+    avg_min = avg_res_min(sev)
+    avg_cost = avg_cost_sek(sev)
+    lines.append(
+        f"{sev.capitalize():<10}: {cnt:>3} st ({pct:>2.0f}%) - "
+        f"Genomsnitt: {avg_min:>4.0f} min resolution, {sek_fmt(avg_cost)} SEK/incident"
+    )
+lines.append("")
+
+# största påverkan
+lines.append("STÖRSTA PÅVERKAN (>100 användare)")
+lines.append("-" * 25)
+if big_impact:
+    for r in big_impact:
+        users = users_int_safe(r.get("affected_users"), 0)
+        cost = sek_fmt(parse_cost_sek(r.get("cost_sek"), 0.0))
+        lines.append(
+            f"- {r.get('ticket_id')} {(r.get('site') or ''):<12} {(r.get('device_hostname') or ''):<15}  "
+            f"users={users:<3}  sev={(r.get('severity') or '').strip().lower():<8}  "
+            f"kostnad= {cost}  SEK  {r.get('category')}"
+        )
+else:
+    lines.append("- (inga händelser över 100 användare)")
+lines.append("")
+
+# topp 5 dyraste
+lines.append("TOPP 5 DYRASTE INCIDENTS")
+lines.append("-" * 25)
+for r in top5_costly:
+    cost = sek_fmt(parse_cost_sek(r.get("cost_sek"), 0.0))
+    lines.append(
+        f"- {r.get('ticket_id')} {(r.get('device_hostname') or ''):<15}  {(r.get('site') or ''):<14}  "
+        f"{(r.get('severity') or '').strip().lower():<8}  {cost} SEK  ({r.get('category')})"
+    )
+
+# skriv filen
+os.makedirs(OUT_DIR, exist_ok=True)
+txt_path = os.path.join(OUT_DIR, "incident_analysis.txt")
+with open(txt_path, "w", encoding="utf-8") as f:
+    f.write("\n".join(lines))
+
+print(f"[OK] Skrev {txt_path}")
