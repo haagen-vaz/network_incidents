@@ -2,34 +2,34 @@ device_hostname,site,device_type,incident_count,avg_severity_score,total_cost_se
 SW-DC-TOR-02,Datacenter,sw,4,3.75,86048.90,158.75,no_data
 RT-LAGER-01,Lager,rt,3,2.67,34901.15,35.67,no_data
 SW-DR-01,Säkerhetskopia,sw,3,1.33,5258.50,6.67,no_data
-AP-FLOOR2-02,Huvudkontor,ap,2,3.5,29111.00,63.0,no_data
-RT-MAL-01,Kontor Malmö,rt,2,2.5,28579.25,38.5,no_data
-RT-DR-01,Säkerhetskopia,rt,2,3.0,26912.50,10.5,no_data
-AP-LAGER-02,Lager,ap,2,3.0,22513.25,50.5,no_data
-AP-MAL-01,Kontor Malmö,ap,2,2.5,22134.50,39.5,no_data
-FW-DC-01,Datacenter,fw,2,3.0,14134.50,133.5,no_data
-SW-LAGER-02,Lager,sw,2,2.5,11679.50,43.5,no_data
-FW-DR-01,Säkerhetskopia,fw,2,2.0,9545.00,7.5,no_data
-SW-CORE-01,Huvudkontor,sw,2,2.0,7458.25,25.5,no_data
-AP-LAGER-01,Lager,ap,2,1.5,4357.25,15.5,no_data
-SW-DC-TOR-01,Datacenter,sw,2,1.5,4221.50,56.0,no_data
-SW-ACCESS-03,Huvudkontor,sw,1,4.0,45678.90,87.0,no_data
-LB-DC-02,Datacenter,lb,1,3.0,11234.25,198.0,no_data
-SW-MAL-CORE-01,Kontor Malmö,sw,1,3.0,9876.25,67.0,no_data
-FW-DC-02,Datacenter,fw,1,3.0,8765.50,145.0,no_data
-RT-EDGE-02,Huvudkontor,rt,1,3.0,8234.50,45.0,no_data
-SW-ACCESS-05,Huvudkontor,sw,1,3.0,6789.25,34.0,no_data
-AP-MAL-02,Kontor Malmö,ap,1,3.0,6543.50,43.0,no_data
-SW-DC-CORE-01,Datacenter,sw,1,2.0,5789.75,123.0,no_data
-SW-DC-CORE-02,Datacenter,sw,1,2.0,5234.75,234.0,no_data
-SW-LAGER-01,Lager,sw,1,2.0,4678.25,41.0,no_data
-LB-DC-01,Datacenter,lb,1,2.0,4567.25,78.0,no_data
-AP-FLOOR3-01,Huvudkontor,ap,1,2.0,4321.25,38.0,no_data
-FW-DMZ-01,Huvudkontor,fw,1,2.0,3456.90,52.0,no_data
-SW-DIST-02,Huvudkontor,sw,1,2.0,3123.00,29.0,no_data
-SW-MAL-ACC-02,Kontor Malmö,sw,1,2.0,2890.00,16.0,no_data
-RT-EDGE-01,Huvudkontor,rt,1,1.0,2156.25,12.0,no_data
-SW-MAL-ACC-01,Kontor Malmö,sw,1,2.0,2123.50,24.0,no_data
-SW-DIST-01,Huvudkontor,sw,1,1.0,1678.75,8.0,no_data
-AP-FLOOR1-02,Huvudkontor,ap,1,1.0,1345.75,15.0,no_data
-FW-MAL-01,Kontor Malmö,fw,1,1.0,567.50,23.0,no_data
+AP-FLOOR2-02,Huvudkontor,ap,2,3.50,29111.00,63.00,no_data
+RT-MAL-01,Kontor Malmö,rt,2,2.50,28579.25,38.50,no_data
+RT-DR-01,Säkerhetskopia,rt,2,3.00,26912.50,10.50,no_data
+AP-LAGER-02,Lager,ap,2,3.00,22513.25,50.50,no_data
+AP-MAL-01,Kontor Malmö,ap,2,2.50,22134.50,39.50,no_data
+FW-DC-01,Datacenter,fw,2,3.00,14134.50,133.50,no_data
+SW-LAGER-02,Lager,sw,2,2.50,11679.50,43.50,no_data
+FW-DR-01,Säkerhetskopia,fw,2,2.00,9545.00,7.50,no_data
+SW-CORE-01,Huvudkontor,sw,2,2.00,7458.25,25.50,no_data
+AP-LAGER-01,Lager,ap,2,1.50,4357.25,15.50,no_data
+SW-DC-TOR-01,Datacenter,sw,2,1.50,4221.50,56.00,no_data
+SW-ACCESS-03,Huvudkontor,sw,1,4.00,45678.90,87.00,no_data
+LB-DC-02,Datacenter,lb,1,3.00,11234.25,198.00,no_data
+SW-MAL-CORE-01,Kontor Malmö,sw,1,3.00,9876.25,67.00,no_data
+FW-DC-02,Datacenter,fw,1,3.00,8765.50,145.00,no_data
+RT-EDGE-02,Huvudkontor,rt,1,3.00,8234.50,45.00,no_data
+SW-ACCESS-05,Huvudkontor,sw,1,3.00,6789.25,34.00,no_data
+AP-MAL-02,Kontor Malmö,ap,1,3.00,6543.50,43.00,no_data
+SW-DC-CORE-01,Datacenter,sw,1,2.00,5789.75,123.00,no_data
+SW-DC-CORE-02,Datacenter,sw,1,2.00,5234.75,234.00,no_data
+SW-LAGER-01,Lager,sw,1,2.00,4678.25,41.00,no_data
+LB-DC-01,Datacenter,lb,1,2.00,4567.25,78.00,no_data
+AP-FLOOR3-01,Huvudkontor,ap,1,2.00,4321.25,38.00,no_data
+FW-DMZ-01,Huvudkontor,fw,1,2.00,3456.90,52.00,no_data
+SW-DIST-02,Huvudkontor,sw,1,2.00,3123.00,29.00,no_data
+SW-MAL-ACC-02,Kontor Malmö,sw,1,2.00,2890.00,16.00,no_data
+RT-EDGE-01,Huvudkontor,rt,1,1.00,2156.25,12.00,no_data
+SW-MAL-ACC-01,Kontor Malmö,sw,1,2.00,2123.50,24.00,no_data
+SW-DIST-01,Huvudkontor,sw,1,1.00,1678.75,8.00,no_data
+AP-FLOOR1-02,Huvudkontor,ap,1,1.00,1345.75,15.00,no_data
+FW-MAL-01,Kontor Malmö,fw,1,1.00,567.50,23.00,no_data

@@ -1,105 +1,110 @@
-
-import csv   # För att läsa CSV-filer
-import os    # För att kunna skapa mappar och hantera filvägar
+import csv
+import os
 import datetime
+from collections import defaultdict
 
+# Läs in CSV-filen
+with open("network_incidents.csv", encoding="utf-8", newline="") as f:
+    reader = csv.DictReader(f)
+    rows = list(reader)
 
-# Läs in CSV-filen till en lista av dictionaries
-with open('network_incidents.csv', encoding='utf-8', newline="") as f:
-    reader = csv.DictReader(f)   # Gör varje rad till en dictionary baserad på rubriker
-    rows = list(reader)          # Lägg alla rader i en lista så vi kan loopa flera gånger
-
-
-# Hjälpfunktion: gör text till heltal (t.ex. "135" eller "135,0" -> 135)
+# Hjälpfunktion – text till heltal
 def to_int_safe(value, default=0):
-    """Konvertera text till int, klarar svenska tal med komma."""
-    s = (value or "").strip()      # Gör None till "" och ta bort mellanslag
-    if s == "":                    # Om värdet är tomt, returnera 0
+    s = (value or "").strip()
+    if s == "":
         return default
-    s = s.replace(",", ".")        # Byt ut komma mot punkt så float() fungerar
+    s = s.replace(",", ".")
     try:
-        return int(float(s))       # Försök konvertera till float först, sen int
+        return int(float(s))
     except ValueError:
-        return default             # Om värdet inte går att läsa som tal, returnera default (0)
+        return default
 
+# Hjälpfunktion – text till flyttal
+def to_float_safe(value, default=0.0):
+    s = (value or "").strip()
+    if s == "":
+        return default
+    s = s.replace("\u202f", " ").replace(" ", "").replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return default
 
-# Hjälpfunktion: konvertera svensk kostnad ("12 345,67") till float
+# Hjälpfunktion – svensk kostnad till float
 def parse_cost_sek(value, default=0.0):
-    """Parsea svensk kostnad '12 345,67' -> 12345.67 (float)."""
-    s = (value or "").strip()              # Trimma texten
-    if s == "":                            # Tomt fält = 0.0
+    s = (value or "").strip()
+    if s == "":
         return default
-    s = s.replace("\u202f", " ")           # Ersätt smalt mellanslag (från Excel) med vanligt
-    s = s.replace(" ", "")                 # Ta bort tusentalsavgränsare
-    s = s.replace(",", ".")                # Byt komma till punkt
+    s = s.replace("\u202f", " ").replace(" ", "").replace(",", ".")
     try:
-        return float(s)                    # Konvertera till float
+        return float(s)
     except ValueError:
-        return default                     # Felaktigt värde → 0.0
+        return default
 
-
-# Hjälpfunktion: formatera tal till svenskt format (12345.67 -> "12 345,67")
+# Hjälpfunktion – formatera SEK till svensk stil
 def sek_fmt(n):
-    """Formatera 12345.67 -> '12 345,67' för snygg utskrift."""
-    s = f"{n:,.2f}"                        # Gör till sträng med två decimaler
-    return s.replace(",", " ").replace(".", ",")  # Byt till svenska formatet
+    s = f"{n:,.2f}"
+    return s.replace(",", " ").replace(".", ",")
+
+# Hjälpfunktion – heltal för användare
+def users_int_safe(v, default=0):
+    s = (v or "").strip()
+    if s == "":
+        return default
+    try:
+        return int(float(s.replace(",", ".")))
+    except ValueError:
+        return default
 
 
-# Beräkna resolution-tider per severity (antal + snitt)
-severity_sum = {}   # Totala minuter per severity
-severity_cnt = {}   # Antal incidenter per severity
+# --- Beräkna resolution-tider per severity ---
+severity_sum = {}
+severity_cnt = {}
 
-for row in rows:                                     # Gå igenom varje incident
-    sev = (row["severity"] or "").strip().lower()    # Hämta severity, t.ex. "critical"
-    mins = to_int_safe(row["resolution_minutes"], 0) # Gör om till int
-    cost = parse_cost_sek(row["cost_sek"], 0.0)      # Läs in kostnad (kan användas senare)
-    site = (row["site"] or "").strip()               # Läs in plats (site)
-
-    # Om vi inte sett denna severity förut, skapa startvärden
+for row in rows:
+    sev = (row["severity"] or "").strip().lower()
+    mins = to_int_safe(row["resolution_minutes"], 0)
     if sev not in severity_sum:
         severity_sum[sev] = 0
         severity_cnt[sev] = 0
-
-    # Addera värden
     severity_sum[sev] += mins
     severity_cnt[sev] += 1
 
-
-# Skriv ut resultat: antal och snitt-resolution per severity
 print("Antal och genomsnittlig resolution per severity:")
-for sev in severity_cnt:                             
-    count = severity_cnt[sev]              # antal incidenter
-    total = severity_sum[sev]              # totala minuter
-    avg = total / count if count else 0    # snittminuter (skydd mot division med 0)
-    print(f" - {sev:<8} : {count:>2} st, snitt {avg:.1f} min")
+for sev in ["critical", "high", "medium", "low"]:
+    if sev in severity_cnt:
+        count = severity_cnt[sev]
+        total = severity_sum[sev]
+        avg = total / count if count else 0
+        print(f" - {sev:<8} : {count:>2} st, snitt {avg:.1f} min")
 
 
-# Beräkna totalkostnad och snittkostnad per severity
-severity_cost = {}    # total kostnad per severity
-severity_count = {}   # antal incidenter per severity (igen, för snitt)
+# --- Beräkna kostnad per severity ---
+severity_cost = {}
+severity_count = {}
 
 for row in rows:
-    sev = (row["severity"] or "").strip().lower()   # severity
-    cost = parse_cost_sek(row["cost_sek"], 0.0)     # kostnad
-
-    if sev not in severity_cost:                    # initiera nycklar
+    sev = (row["severity"] or "").strip().lower()
+    cost = parse_cost_sek(row["cost_sek"], 0.0)
+    if sev not in severity_cost:
         severity_cost[sev] = 0.0
         severity_count[sev] = 0
+    severity_cost[sev] += cost
+    severity_count[sev] += 1
 
-    severity_cost[sev] += cost                      # addera kostnaden
-    severity_count[sev] += 1                        # öka räknare
-
-
-# Skriv ut total och genomsnittlig kostnad per severity
 print("\nTotalkostnad per severity:")
-for sev in severity_cost:
-    total = severity_cost[sev]
-    avg   = total / severity_count[sev] if severity_count[sev] else 0.0
-    print(f" - {sev:<8}: {sek_fmt(total)} SEK  (snitt {sek_fmt(avg)} SEK/incident)")
+for sev in ["critical", "high", "medium", "low"]:
+    if sev in severity_cost:
+        total = severity_cost[sev]
+        avg   = total / severity_count[sev] if severity_count[sev] else 0.0
+        print(f" - {sev:<8}: {sek_fmt(total)} SEK  (snitt {sek_fmt(avg)} SEK/incident)")
 
 
-# Samla statistik per site i en ordbok
-site_stats = {}  # {"Huvudkontor": {...}, "Datacenter": {...}, ...}
+# --- Statistik per site ---
+OUT_DIR = "out"
+os.makedirs(OUT_DIR, exist_ok=True)
+
+site_stats = {}
 
 for row in rows:
     site = (row["site"] or "").strip()
@@ -119,37 +124,31 @@ for row in rows:
         }
 
     site_stats[site]["total_incidents"] += 1
-    key = f"{sev}_incidents"          # bygger t.ex. "high_incidents"
+    key = f"{sev}_incidents"
     if key in site_stats[site]:
         site_stats[site][key] += 1
     site_stats[site]["sum_resolution"] += mins
     site_stats[site]["total_cost_sek"] += cost
 
-# Räkna ut genomsnittlig resolution-tid per site
-for site_name, data in site_stats.items():
+for _, data in site_stats.items():
     count = data["total_incidents"]
     avg = (data["sum_resolution"] / count) if count else 0.0
     data["avg_resolution_minutes"] = round(avg, 2)
     data["total_cost_sek"] = round(data["total_cost_sek"], 2)
 
-# Skriv CSV med sammanfattning per site
-OUT_DIR = "out"
-os.makedirs(OUT_DIR, exist_ok=True)
+# --- Skriv incidents_by_site.csv ---
 out_path = os.path.join(OUT_DIR, "incidents_by_site.csv")
-
-fieldnames = [
-    "site",
-    "total_incidents",
-    "critical_incidents",
-    "high_incidents",
-    "medium_incidents",
-    "low_incidents",
-    "avg_resolution_minutes",
-    "total_cost_sek",
-]
-
 with open(out_path, "w", encoding="utf-8", newline="") as f:
-    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    writer = csv.DictWriter(f, fieldnames=[
+        "site",
+        "total_incidents",
+        "critical_incidents",
+        "high_incidents",
+        "medium_incidents",
+        "low_incidents",
+        "avg_resolution_minutes",
+        "total_cost_sek",
+    ])
     writer.writeheader()
     for site in sorted(site_stats.keys()):
         d = site_stats[site]
@@ -161,20 +160,14 @@ with open(out_path, "w", encoding="utf-8", newline="") as f:
             "medium_incidents": d["medium_incidents"],
             "low_incidents": d["low_incidents"],
             "avg_resolution_minutes": d["avg_resolution_minutes"],
-            # punkt som decimal funkar fint i Excel
             "total_cost_sek": f'{d["total_cost_sek"]:.2f}',
         })
-
 print(f"[OK] Skrev {out_path}")
 
 
-# --- Problem devices: gruppera per enhet och skriv CSV ---
-
-# Omvandla severity till ett numeriskt "allvarlighetsvärde" för snittberäkning
+# --- Problem devices ---
 severity_score = {"low": 1, "medium": 2, "high": 3, "critical": 4}
-
-# Samla statistik per device
-dev_stats = {}  # t.ex. {"SW-DC-TOR-02": {...}, ...}
+dev_stats = {}
 
 for row in rows:
     host = (row["device_hostname"] or "").strip()
@@ -187,7 +180,6 @@ for row in rows:
         dev_stats[host] = {
             "device_hostname": host,
             "site": site,
-            # device_type = prefix före första "-" (ex: "SW" i "SW-DC-TOR-02")
             "device_type": host.split("-")[0].lower() if "-" in host else "",
             "incident_count": 0,
             "sum_sev_score": 0.0,
@@ -200,7 +192,6 @@ for row in rows:
     dev_stats[host]["total_cost"] += cost
     dev_stats[host]["sum_users"] += users
 
-# Gör en lista med färdiga rader och räkna snitt
 problem_rows = []
 for d in dev_stats.values():
     cnt = d["incident_count"]
@@ -214,14 +205,12 @@ for d in dev_stats.values():
         "avg_severity_score": round(avg_sev, 2),
         "total_cost_sek": round(d["total_cost"], 2),
         "avg_affected_users": round(avg_usr, 2),
-        # Vi har inte förra veckans lista i denna uppgift, så markera som okänt
         "in_last_weeks_warnings": "no_data",
     })
 
-# Sortera: flest incidents först, sedan högst total kostnad
 problem_rows.sort(key=lambda r: (-r["incident_count"], -r["total_cost_sek"]))
 
-# Skriv CSV
+# --- Skriv problem_devices.csv ---
 out_path_pd = os.path.join(OUT_DIR, "problem_devices.csv")
 with open(out_path_pd, "w", encoding="utf-8", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=[
@@ -231,154 +220,94 @@ with open(out_path_pd, "w", encoding="utf-8", newline="") as f:
     ])
     writer.writeheader()
     for r in problem_rows:
-        # se till att kostnaden skrivs med punkt som decimal i CSV
-        r_out = dict(r)
-        r_out["total_cost_sek"] = f'{r["total_cost_sek"]:.2f}'
-        writer.writerow(r_out)
-
+        writer.writerow({
+            "device_hostname": r["device_hostname"],
+            "site": r["site"],
+            "device_type": r["device_type"],
+            "incident_count": r["incident_count"],
+            "avg_severity_score": f'{r["avg_severity_score"]:.2f}',
+            "total_cost_sek": f'{r["total_cost_sek"]:.2f}',
+            "avg_affected_users": f'{r["avg_affected_users"]:.2f}',
+            "in_last_weeks_warnings": r["in_last_weeks_warnings"],
+        })
 print(f"[OK] Skrev {out_path_pd}")
 
 
-
-#  cost_analysis.csv 
-
-# Liten hjälpare: säkert float-parsning (tål svenska komma och mellanslag)
-def to_float_safe(value, default=0.0):
-    s = (value or "").strip()
-    if s == "":
-        return default
-    # ta bort ev. smalt/vanligt mellanslag som tusentalsavgränsare
-    s = s.replace("\u202f", " ").replace(" ", "")
-    # byt komma till punkt så Python kan läsa decimaler
-    s = s.replace(",", ".")
-    try:
-        return float(s)
-    except ValueError:
-        return default
-
-# Samla statistik per vecka i en ordbok
-# Exempelstruktur: {36: {"total_cost": 0.0, "count": 0, "impact_sum": 0.0}}
+# --- Kostnad per vecka ---
 week_stats = {}
-
 for row in rows:
-    # Hämta veckonummer som int (tål "36", "36.0", "36,0")
     week = to_int_safe(row.get("week_number"), 0)
-    # Kostnad i SEK som float (svensk parsing)
     cost = parse_cost_sek(row.get("cost_sek"), 0.0)
-    # Impact score (kan vara tom sträng → 0.0)
     impact = to_float_safe(row.get("impact_score"), 0.0)
-
     if week not in week_stats:
         week_stats[week] = {"total_cost": 0.0, "count": 0, "impact_sum": 0.0}
+    week_stats[week]["total_cost"] += cost
+    week_stats[week]["count"] += 1
+    week_stats[week]["impact_sum"] += impact
 
-    week_stats[week]["total_cost"] += cost      # summera kostnaden för veckan
-    week_stats[week]["count"] += 1              # räkna incidenter i veckan
-    week_stats[week]["impact_sum"] += impact    # summera impact för snitt senare
-
-# Gör rader klara för CSV 
 weekly_rows = []
-for week in sorted(week_stats.keys()):
+for week in sorted(k for k in week_stats.keys() if k):
     total_cost = round(week_stats[week]["total_cost"], 2)
     count = week_stats[week]["count"]
-    avg_impact = round(
-        (week_stats[week]["impact_sum"] / count) if count else 0.0, 2
-    )
-
+    avg_impact = round((week_stats[week]["impact_sum"] / count) if count else 0.0, 2)
     weekly_rows.append({
         "week_number": week,
         "total_incidents": count,
-        # skriv ut med punkt som decimal så Excel/Sheets läser talet
         "total_cost_sek": f"{total_cost:.2f}",
         "avg_impact_score": avg_impact,
     })
 
-# Skriv CSV till out/cost_analysis.csv
-os.makedirs(OUT_DIR, exist_ok=True)
+# --- Skriv cost_analysis.csv ---
 out_path_cost = os.path.join(OUT_DIR, "cost_analysis.csv")
-
 with open(out_path_cost, "w", encoding="utf-8", newline="") as f:
-    writer = csv.DictWriter(
-        f,
-        fieldnames=["week_number", "total_incidents", "total_cost_sek", "avg_impact_score"]
-    )
+    writer = csv.DictWriter(f, fieldnames=[
+        "week_number", "total_incidents", "total_cost_sek", "avg_impact_score"
+    ])
     writer.writeheader()
     for r in weekly_rows:
         writer.writerow(r)
-
 print(f"[OK] Skrev {out_path_cost}")
 
 
-# Genomsnittlig impact score per kategori 
-
-# skapar en ordbok där varje kategori får sin totalsumma och räknare
-category_stats = {}   # t.ex. {"wifi": {"sum": 45.6, "count": 6}, ...}
-
+# --- Impact score per kategori ---
+category_stats = {}
 for row in rows:
     category = (row.get("category") or "").strip().lower()
-    impact = to_float_safe(row.get("impact_score"), 0.0)  # samma helper som används i cost_analysis
-
+    impact = to_float_safe(row.get("impact_score"), 0.0)
     if category not in category_stats:
         category_stats[category] = {"sum": 0.0, "count": 0}
-
     category_stats[category]["sum"] += impact
     category_stats[category]["count"] += 1
 
-# Räkna fram snittet och sortera på högst medel-impact först
 category_avg = []
 for cat, vals in category_stats.items():
     count = vals["count"]
     avg = vals["sum"] / count if count else 0.0
     category_avg.append((cat, round(avg, 2), count))
+category_avg.sort(key=lambda x: -x[1])
 
-category_avg.sort(key=lambda x: -x[1])  # sortera efter högsta medelvärde
-
-# Skriv ut i terminalen
-print("\nGenomsnittlig impact score per kategori:")
-for cat, avg, count in category_avg:
-    print(f" - {cat:<15}: {avg:.2f} (antal {count})")
-
-# Skriv även CSV-fil till Excel
+# --- Skriv impact_by_category.csv ---
 out_path_cat = os.path.join(OUT_DIR, "impact_by_category.csv")
 with open(out_path_cat, "w", encoding="utf-8", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(["category", "avg_impact_score", "incident_count"])
     for cat, avg, count in category_avg:
         writer.writerow([cat, f"{avg:.2f}", count])
-
 print(f"[OK] Skrev {out_path_cat}")
 
 
-
-# Textrapport
-
-
-# Hämta heltal säkert för affected_users i listningen nedan
-def users_int_safe(v, default=0):
-    s = (v or "").strip()
-    if s == "":
-        return default
-    try:
-        return int(float(s.replace(",", ".")))
-    except ValueError:
-        return default
-
-# Sammanställ grunddata till rapporten
-total_incidents = len(rows)  # hur många rader totalt
-total_cost = sum(parse_cost_sek(r.get("cost_sek"), 0.0) for r in rows)  # summera kostnader
-
-# period (min/max vecka)
+# --- Skapa textrapport ---
+total_incidents = len(rows)
+total_cost = sum(parse_cost_sek(r.get("cost_sek"), 0.0) for r in rows)
 all_weeks = [to_int_safe(r.get("week_number"), 0) for r in rows if r.get("week_number") is not None]
 min_week = min(all_weeks) if all_weeks else None
 max_week = max(all_weeks) if all_weeks else None
 
-# genomsnittlig resolution per severity
 def avg_res_min(sev):
     cnt = severity_cnt.get(sev, 0)
     tot = severity_sum.get(sev, 0)
     return (tot / cnt) if cnt else 0.0
 
-# genomsnittlig kostnad per severity
-from collections import defaultdict
 sev_costs = defaultdict(float)
 sev_counts = defaultdict(int)
 for r in rows:
@@ -386,21 +315,13 @@ for r in rows:
     c = parse_cost_sek(r.get("cost_sek"), 0.0)
     sev_costs[sev] += c
     sev_counts[sev] += 1
+
 def avg_cost_sek(sev):
     cnt = sev_counts.get(sev, 0)
     return (sev_costs.get(sev, 0.0) / cnt) if cnt else 0.0
 
-# incidents som påverkat fler än 100 användare
 big_impact = [r for r in rows if users_int_safe(r.get("affected_users"), 0) > 100]
-
-# topp 5 dyraste incidents
-top5_costly = sorted(
-    rows,
-    key=lambda r: parse_cost_sek(r.get("cost_sek"), 0.0),
-    reverse=True
-)[:5]
-
-# lista alla sites och hitta de som saknar critical
+top5_costly = sorted(rows, key=lambda r: parse_cost_sek(r.get("cost_sek"), 0.0), reverse=True)[:5]
 sites = sorted({ (r.get("site") or "").strip() for r in rows })
 site_crit = { s: 0 for s in sites }
 for r in rows:
@@ -410,23 +331,18 @@ for r in rows:
         site_crit[s] += 1
 sites_no_critical = [s for s in sites if site_crit.get(s, 0) == 0]
 
-# bygg rad för rad i rapporten
 lines = []
 lines.append("=" * 80)
 lines.append(" " * 22 + "INCIDENT ANALYSIS - SENASTE PERIODEN")
 lines.append("=" * 80)
+today = datetime.date.today()
+lines.append(f"Rapport genererad: {today.strftime('%Y-%m-%d')}")
 if min_week is not None and max_week is not None:
     lines.append(f"Analysperiod (veckor): {min_week} till {max_week}")
 lines.append(f"Total incidents: {total_incidents} st")
 lines.append(f"Total kostnad: {sek_fmt(total_cost)} SEK")
 lines.append("")
-# Datumstämpel för när rapporten genererades
-today = datetime.date.today()
-lines.append(f"Rapport genererad: {today.strftime('%Y-%m-%d')}")
-lines.append("")  # tom rad för luft
 
-
-# executive summary
 lines.append("EXECUTIVE SUMMARY")
 lines.append("-" * 25)
 if sites_no_critical:
@@ -439,29 +355,24 @@ if top5_costly:
     )
 lines.append("")
 
-# incidents per severity
 lines.append("INCIDENTS PER SEVERITY")
 lines.append("-" * 25)
 for sev in ["critical", "high", "medium", "low"]:
     cnt = severity_cnt.get(sev, 0)
     pct = (cnt / total_incidents * 100) if total_incidents else 0
     avg_min = avg_res_min(sev)
-    avg_cost = avg_cost_sek(sev)
+    avg_cst = avg_cost_sek(sev)
     lines.append(
         f"{sev.capitalize():<10}: {cnt:>3} st ({pct:>2.0f}%) - "
-        f"Genomsnitt: {avg_min:>4.0f} min resolution, {sek_fmt(avg_cost)} SEK/incident"
+        f"Genomsnitt: {avg_min:>4.0f} min resolution, {sek_fmt(avg_cst)} SEK/incident"
     )
 lines.append("")
 
-# största påverkan
 lines.append("STÖRSTA PÅVERKAN (>100 användare)")
 lines.append("-" * 80)
-
 if big_impact:
-    # skriv en tydlig rubrikrad för kolumnerna
-    lines.append(f"{'ticket':<13} {'site':<14} {'device':<18} {'users':>5} {'sev':<6} {'kostnad':>14}  {'category'}")
+    lines.append(f"{'ticket':<12} {'site':<14} {'device':<18} {'users':>5} {'sev':<8} {'kostnad':>14}  {'category'}")
     lines.append("-" * 80)
-
     for r in big_impact:
         tid  = (r.get('ticket_id') or '')
         site = (r.get('site') or '')
@@ -470,25 +381,16 @@ if big_impact:
         users = users_int_safe(r.get('affected_users'), 0)
         cost_sw = f"{sek_fmt(parse_cost_sek(r.get('cost_sek'), 0.0))} SEK"
         cat  = (r.get('category') or '')
-
-        # justera kolumner så siffror och text radar upp sig snyggt
-        lines.append(
-            f"{tid:<12} {site:<14} {dev:<16} {users:>5} {sev:<8} {cost_sw:>14}  {cat}"
-        )
+        lines.append(f"{tid:<12} {site:<14} {dev:<18} {users:>5} {sev:<8} {cost_sw:>14}  {cat}")
 else:
     lines.append("- (inga händelser över 100 användare)")
 lines.append("")
 
-
-# topp 5 dyraste
 lines.append("TOPP 5 DYRASTE INCIDENTS")
 lines.append("-" * 80)
-
 if top5_costly:
-    # kolumnrubriker
-    lines.append(f"{'ticket':<13} {'device':<19} {'site':<14} {'sev':<8} {'kostnad':>13}  {'category'}")
+    lines.append(f"{'ticket':<12} {'device':<18} {'site':<14} {'sev':<8} {'kostnad':>14}  {'category'}")
     lines.append("-" * 80)
-
     for r in top5_costly:
         tid  = (r.get('ticket_id') or '')
         dev  = (r.get('device_hostname') or '')
@@ -496,59 +398,10 @@ if top5_costly:
         sev  = (r.get('severity') or '').strip().lower()
         cost_sw = f"{sek_fmt(parse_cost_sek(r.get('cost_sek'), 0.0))} SEK"
         cat  = (r.get('category') or '')
-
-        lines.append(
-            f"{tid:<12} {dev:<18} {site:<14} {sev:<8} {cost_sw:>14}  {cat}"
-        )
+        lines.append(f"{tid:<12} {dev:<18} {site:<14} {sev:<8} {cost_sw:>14}  {cat}")
 else:
     lines.append("- (inga data)")
 lines.append("")
 
-
-
-# REKOMMENDERAD ÅTGÄRDSPLAN (läggs till i rapporten)
-
-lines.append("")
 lines.append("REKOMMENDERAD ÅTGÄRDSPLAN")
-lines.append("-" * 25)
-
-# Identifiera enheter med återkommande problem
-problem_devices = [
-    d for d in problem_rows if d["incident_count"] >= 3
-]
-
-if problem_devices:
-    for d in problem_devices:
-        name = d["device_hostname"]
-        site = d["site"]
-        inc = d["incident_count"]
-        avg_sev = d["avg_severity_score"]
-        dev_type = d["device_type"]
-
-        if avg_sev >= 3.5:
-            lines.append(
-                f"- {name} ({site}): {inc} incidenter, hög allvarlighetsgrad ({avg_sev:.1f}) "
-                f"→ Byt ut eller gör hårdvarugenomgång av {dev_type}."
-            )
-        elif avg_sev >= 2.5:
-            lines.append(
-                f"- {name} ({site}): {inc} incidenter, medel allvarlighetsgrad ({avg_sev:.1f}) "
-                f"→ Planera förebyggande underhåll eller firmware-uppdatering."
-            )
-        else:
-            lines.append(
-                f"- {name} ({site}): {inc} incidenter, låg allvarlighetsgrad "
-                f"→ Övervaka utvecklingen under kommande period."
-            )
-else:
-    lines.append("- Inga återkommande problem upptäckta över tröskeln 3 incidenter.")
-
-
-
-# skriv filen
-os.makedirs(OUT_DIR, exist_ok=True)
-txt_path = os.path.join(OUT_DIR, "incident_analysis.txt")
-with open(txt_path, "w", encoding="utf-8") as f:
-    f.write("\n".join(lines))
-
-print(f"[OK] Skrev {txt_path}")
+lines.append
