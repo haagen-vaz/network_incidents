@@ -2,13 +2,44 @@ import csv
 import os
 import datetime
 from collections import defaultdict
+import json
 
 # Läs in CSV-filen
 with open("network_incidents.csv", encoding="utf-8", newline="") as f:
     reader = csv.DictReader(f)
     rows = list(reader)
 
-# Hjälpfunktion – text till heltal
+import json
+
+def load_last_week_warnings(path="network.devices.json"):
+    try:
+        with open(path, encoding="utf-8") as jf:
+            data = json.load(jf)
+    except FileNotFoundError:
+        return set()
+
+    warn = set()
+    # Walk locations -> devices and collect warning/offline devices
+    for loc in data.get("locations", []):
+        for d in loc.get("devices", []):
+            name = (d.get("hostname") or "").strip().upper()
+            status = (d.get("status") or "").strip().lower()
+            if name and status in {"warning", "offline", "down", "degraded"}:
+                warn.add(name)
+
+    # Optional: if your JSON also had a simple list like {"warnings": ["SW-..."]}
+    for name in data.get("warnings", []):
+        if isinstance(name, str) and name.strip():
+            warn.add(name.strip().upper())
+
+    return warn
+
+last_week_warnings = load_last_week_warnings()
+print(f"[Info] Found {len(last_week_warnings)} last-week warning devices")
+
+
+
+# text till heltal
 def to_int_safe(value, default=0):
     s = (value or "").strip()
     if s == "":
@@ -19,7 +50,7 @@ def to_int_safe(value, default=0):
     except ValueError:
         return default
 
-# Hjälpfunktion – text till flyttal
+#  text till flyttal
 def to_float_safe(value, default=0.0):
     s = (value or "").strip()
     if s == "":
@@ -30,7 +61,7 @@ def to_float_safe(value, default=0.0):
     except ValueError:
         return default
 
-# Hjälpfunktion – svensk kostnad till float
+# svensk kostnad till float
 def parse_cost_sek(value, default=0.0):
     s = (value or "").strip()
     if s == "":
@@ -41,12 +72,12 @@ def parse_cost_sek(value, default=0.0):
     except ValueError:
         return default
 
-# Hjälpfunktion – formatera SEK till svensk stil
+# formatera SEK till svensk stil
 def sek_fmt(n):
     s = f"{n:,.2f}"
     return s.replace(",", " ").replace(".", ",")
 
-# Hjälpfunktion – heltal för användare
+# heltal för användare
 def users_int_safe(v, default=0):
     s = (v or "").strip()
     if s == "":
@@ -57,7 +88,7 @@ def users_int_safe(v, default=0):
         return default
 
 
-# --- Beräkna resolution-tider per severity ---
+# Beräkna resolution-tider per severity
 severity_sum = {}
 severity_cnt = {}
 
@@ -79,7 +110,7 @@ for sev in ["critical", "high", "medium", "low"]:
         print(f" - {sev:<8} : {count:>2} st, snitt {avg:.1f} min")
 
 
-# --- Beräkna kostnad per severity ---
+# Beräkna kostnad per severity
 severity_cost = {}
 severity_count = {}
 
@@ -100,7 +131,7 @@ for sev in ["critical", "high", "medium", "low"]:
         print(f" - {sev:<8}: {sek_fmt(total)} SEK  (snitt {sek_fmt(avg)} SEK/incident)")
 
 
-# --- Statistik per site ---
+# Statistik per site 
 OUT_DIR = "out"
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -136,7 +167,7 @@ for _, data in site_stats.items():
     data["avg_resolution_minutes"] = round(avg, 2)
     data["total_cost_sek"] = round(data["total_cost_sek"], 2)
 
-# --- Skriv incidents_by_site.csv ---
+# Skriv incidents_by_site.csv 
 out_path = os.path.join(OUT_DIR, "incidents_by_site.csv")
 with open(out_path, "w", encoding="utf-8", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=[
@@ -165,7 +196,7 @@ with open(out_path, "w", encoding="utf-8", newline="") as f:
 print(f"[OK] Skrev {out_path}")
 
 
-# --- Problem devices ---
+# Problem devices
 severity_score = {"low": 1, "medium": 2, "high": 3, "critical": 4}
 dev_stats = {}
 
@@ -205,12 +236,14 @@ for d in dev_stats.values():
         "avg_severity_score": round(avg_sev, 2),
         "total_cost_sek": round(d["total_cost"], 2),
         "avg_affected_users": round(avg_usr, 2),
-        "in_last_weeks_warnings": "no_data",
+        "in_last_weeks_warnings": "yes" if d["device_hostname"].strip().upper() in last_week_warnings else "no",
+
+
     })
 
 problem_rows.sort(key=lambda r: (-r["incident_count"], -r["total_cost_sek"]))
 
-# --- Skriv problem_devices.csv ---
+# Skriv problem_devices.csv
 out_path_pd = os.path.join(OUT_DIR, "problem_devices.csv")
 with open(out_path_pd, "w", encoding="utf-8", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=[
@@ -233,7 +266,7 @@ with open(out_path_pd, "w", encoding="utf-8", newline="") as f:
 print(f"[OK] Skrev {out_path_pd}")
 
 
-# --- Kostnad per vecka ---
+# Kostnad per vecka
 week_stats = {}
 for row in rows:
     week = to_int_safe(row.get("week_number"), 0)
@@ -269,7 +302,7 @@ with open(out_path_cost, "w", encoding="utf-8", newline="") as f:
 print(f"[OK] Skrev {out_path_cost}")
 
 
-# --- Impact score per kategori ---
+# Impact score per kategori
 category_stats = {}
 for row in rows:
     category = (row.get("category") or "").strip().lower()
@@ -286,7 +319,7 @@ for cat, vals in category_stats.items():
     category_avg.append((cat, round(avg, 2), count))
 category_avg.sort(key=lambda x: -x[1])
 
-# --- Skriv impact_by_category.csv ---
+# Skriv impact_by_category.csv
 out_path_cat = os.path.join(OUT_DIR, "impact_by_category.csv")
 with open(out_path_cat, "w", encoding="utf-8", newline="") as f:
     writer = csv.writer(f)
@@ -296,7 +329,7 @@ with open(out_path_cat, "w", encoding="utf-8", newline="") as f:
 print(f"[OK] Skrev {out_path_cat}")
 
 
-# --- Skapa textrapport ---
+# Skapa textrapport
 total_incidents = len(rows)
 total_cost = sum(parse_cost_sek(r.get("cost_sek"), 0.0) for r in rows)
 all_weeks = [to_int_safe(r.get("week_number"), 0) for r in rows if r.get("week_number") is not None]
