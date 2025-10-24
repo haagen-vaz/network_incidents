@@ -39,11 +39,11 @@ def write_csv(path, fieldnames, rows_iter):
         w.writeheader()
         w.writerows(rows_iter)
 
-# --- För utdatafiler ---
+# --- För utdatafiler
 OUT_DIR = "out"
 os.makedirs(OUT_DIR, exist_ok=True)
 
-# --- En loop: samla all severity-statistik (antal, minuter, kostnad) ---
+# --- En loop: samla all severity-statistik (antal, minuter, kostnad)
 severity_stats = defaultdict(lambda: {"count": 0, "sum_min": 0, "sum_cost": 0.0})
 for r in rows:
     sev = (r.get("severity") or "").strip().lower()
@@ -202,9 +202,9 @@ weeks = [to_int_safe(r.get("week_number"), 0) for r in rows if r.get("week_numbe
 min_w, max_w = (min(weeks), max(weeks)) if weeks else (None, None)
 
 lines = []
-lines.append("=" * 80)
+lines.append("=" * 60)
 lines.append(" " * 22 + "INCIDENT ANALYSIS - SENASTE PERIODEN")
-lines.append("=" * 80)
+lines.append("=" * 60)
 lines.append(f"Rapport genererad: {datetime.date.today().strftime('%Y-%m-%d')}")
 if min_w and max_w:
     lines.append(f"Analysperiod (veckor): {min_w} till {max_w}")
@@ -216,14 +216,14 @@ lines.append("")
 top_site = max(site_stats.items(), key=lambda kv: kv[1]["total_incidents"])[0] if site_stats else "-"
 recurrent = [r for r in problem_rows if int(r["incident_count"]) >= 3]
 lines.append("EXECUTIVE SUMMARY")
-lines.append("-" * 25)
+lines.append("-" * 18)
 lines.append(f"• Mest belastade site: {top_site}")
 lines.append(f"• Enheter med ≥3 incidenter: {len(recurrent)} st")
 lines.append("")
 
 # Incidents per severity
 lines.append("INCIDENTS PER SEVERITY")
-lines.append("-" * 80)
+lines.append("-" * 68)
 for sev in ["critical", "high", "medium", "low"]:
     cnt = severity_cnt.get(sev, 0)
     tot_min = severity_sum.get(sev, 0)
@@ -231,16 +231,16 @@ for sev in ["critical", "high", "medium", "low"]:
     tot_cost = severity_cost.get(sev, 0.0)
     avg_cost = (tot_cost / cnt) if cnt else 0.0
     pct = (cnt / total_incidents * 100) if total_incidents else 0
-    lines.append(f"{sev.capitalize():<10}: {cnt:>3} st ({pct:>2.0f}%) - Genomsnitt: {avg_min:>4.0f} min, {sek_fmt(avg_cost)} SEK/incident")
+    lines.append(f"{sev.capitalize():<9}: {cnt:>2} st ({pct:>2.0f}%) - Genomsnitt: {avg_min:>3.0f} min, {sek_fmt(avg_cost)} SEK/incident")
 lines.append("")
 
 # Största påverkan (>100 användare)
 big_impact = [r for r in rows if users_int_safe(r.get("affected_users"), 0) > 100]
 lines.append("STÖRSTA PÅVERKAN (>100 användare)")
-lines.append("-" * 80)
+lines.append("-" * 87)
 if big_impact:
-    lines.append(f"{'ticket':<12} {'site':<14} {'device':<18} {'users':>5} {'sev':<8} {'kostnad':>14}  {'category'}")
-    lines.append("-" * 80)
+    lines.append(f"{'ticket':<13} {'site':<14} {'device':<20} {'users':>5} {'sev':<6} {'kostnad':>14}  {'category'}")
+    lines.append("-" * 87)
     for r in big_impact:
         tid  = (r.get('ticket_id') or '')
         site = (r.get('site') or '')
@@ -257,10 +257,10 @@ lines.append("")
 # Topp 5 dyraste
 top5 = sorted(rows, key=lambda r: parse_float(r.get("cost_sek"), 0.0), reverse=True)[:5]
 lines.append("TOPP 5 DYRASTE INCIDENTS")
-lines.append("-" * 80)
+lines.append("-" * 87)
 if top5:
-    lines.append(f"{'ticket':<12} {'device':<18} {'site':<14} {'sev':<8} {'kostnad':>14}  {'category'}")
-    lines.append("-" * 80)
+    lines.append(f"{'ticket':<13} {'device':<18} {'site':<14} {'sev':<8} {'kostnad':>14}  {'category'}")
+    lines.append("-" * 87)
     for r in top5:
         lines.append(f"{(r.get('ticket_id') or ''):<12} {(r.get('device_hostname') or ''):<18} {(r.get('site') or ''):<14} {(r.get('severity') or '').strip().lower():<8} {sek_fmt(parse_float(r.get('cost_sek'),0.0)):>14}  {(r.get('category') or '')}")
 else:

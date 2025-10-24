@@ -1,27 +1,27 @@
-================================================================================
+============================================================
                       INCIDENT ANALYSIS - SENASTE PERIODEN
-================================================================================
+============================================================
 Rapport genererad: 2025-10-24
 Analysperiod (veckor): 36 till 39
 Total incidents: 52 st
 Total kostnad: 445 910,10 SEK
 
 EXECUTIVE SUMMARY
--------------------------
+------------------
 • Mest belastade site: Huvudkontor
 • Enheter med ≥3 incidenter: 3 st
 
 INCIDENTS PER SEVERITY
---------------------------------------------------------------------------------
-Critical  :  10 st (19%) - Genomsnitt:  119 min, 25 967,23 SEK/incident
-High      :  13 st (25%) - Genomsnitt:  108 min, 8 251,60 SEK/incident
-Medium    :  17 st (33%) - Genomsnitt:  113 min, 3 506,68 SEK/incident
-Low       :  12 st (23%) - Genomsnitt:  107 min, 1 612,79 SEK/incident
+--------------------------------------------------------------------
+Critical : 10 st (19%) - Genomsnitt: 119 min, 25 967,23 SEK/incident
+High     : 13 st (25%) - Genomsnitt: 108 min, 8 251,60 SEK/incident
+Medium   : 17 st (33%) - Genomsnitt: 113 min, 3 506,68 SEK/incident
+Low      : 12 st (23%) - Genomsnitt: 107 min, 1 612,79 SEK/incident
 
 STÖRSTA PÅVERKAN (>100 användare)
---------------------------------------------------------------------------------
-ticket       site           device             users sev             kostnad  category
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
+ticket        site           device               users sev           kostnad  category
+---------------------------------------------------------------------------------------
 TECH-2024-006 Datacenter     SW-DC-TOR-02         156 critical  23 456,90 SEK  performance
 TECH-2024-014 Datacenter     SW-DC-TOR-02         123 critical  15 678,75 SEK  hardware
 TECH-2024-022 Datacenter     SW-DC-TOR-02         189 critical  34 567,50 SEK  connectivity
@@ -33,9 +33,9 @@ TECH-2024-047 Datacenter     SW-DC-CORE-01        123 medium     5 789,75 SEK  p
 TECH-2024-052 Datacenter     FW-DC-01             178 high       8 456,25 SEK  security
 
 TOPP 5 DYRASTE INCIDENTS
---------------------------------------------------------------------------------
-ticket       device             site           sev             kostnad  category
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
+ticket        device             site           sev             kostnad  category
+---------------------------------------------------------------------------------------
 TECH-2024-024 SW-ACCESS-03       Huvudkontor    critical      45 678,90  hardware
 TECH-2024-022 SW-DC-TOR-02       Datacenter     critical      34 567,50  connectivity
 TECH-2024-040 RT-LAGER-01        Lager          critical      28 765,50  connectivity
