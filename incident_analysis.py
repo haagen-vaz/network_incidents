@@ -9,8 +9,6 @@ with open("network_incidents.csv", encoding="utf-8", newline="") as f:
     reader = csv.DictReader(f)
     rows = list(reader)
 
-import json
-
 def load_last_week_warnings(path="network.devices.json"):
     try:
         with open(path, encoding="utf-8") as jf:
@@ -19,7 +17,8 @@ def load_last_week_warnings(path="network.devices.json"):
         return set()
 
     warn = set()
-    # Walk locations -> devices and collect warning/offline devices
+
+    # Walk through locations -> devices and look for warnings
     for loc in data.get("locations", []):
         for d in loc.get("devices", []):
             name = (d.get("hostname") or "").strip().upper()
@@ -27,7 +26,7 @@ def load_last_week_warnings(path="network.devices.json"):
             if name and status in {"warning", "offline", "down", "degraded"}:
                 warn.add(name)
 
-    # Optional: if your JSON also had a simple list like {"warnings": ["SW-..."]}
+    # Optional: look through a "warnings" list if it exists
     for name in data.get("warnings", []):
         if isinstance(name, str) and name.strip():
             warn.add(name.strip().upper())
@@ -36,7 +35,6 @@ def load_last_week_warnings(path="network.devices.json"):
 
 last_week_warnings = load_last_week_warnings()
 print(f"[Info] Found {len(last_week_warnings)} last-week warning devices")
-
 
 
 # text till heltal
@@ -237,8 +235,6 @@ for d in dev_stats.values():
         "total_cost_sek": round(d["total_cost"], 2),
         "avg_affected_users": round(avg_usr, 2),
         "in_last_weeks_warnings": "yes" if d["device_hostname"].strip().upper() in last_week_warnings else "no",
-
-
     })
 
 problem_rows.sort(key=lambda r: (-r["incident_count"], -r["total_cost_sek"]))
@@ -436,5 +432,62 @@ else:
     lines.append("- (inga data)")
 lines.append("")
 
+# Rekommenderad åtgärdsplan
 lines.append("REKOMMENDERAD ÅTGÄRDSPLAN")
-lines.append
+lines.append("-" * 25)
+lines.append("")  # tom rad för luft
+
+# Föreslå åtgärder baserat på återkommande incidenter / hög allvarlighet
+problem_devices_for_actions = [d for d in problem_rows if d["incident_count"] >= 3]
+
+type_name = {
+    "sw": "switch",
+    "rt": "router",
+    "ap": "access point",
+    "fw": "firewall",
+    "lb": "load balancer",
+}
+
+if problem_devices_for_actions:
+    lines.append("FÖRESLAGNA ÅTGÄRDER (baserat på återkommande incidenter)")
+    lines.append("-" * 25)
+    # mest problem först
+    for d in sorted(problem_devices_for_actions, key=lambda x: (-x["incident_count"], -x["avg_severity_score"])):
+        tname = type_name.get((d["device_type"] or "").lower(), d["device_type"])
+        inc = d["incident_count"]
+        avg = d["avg_severity_score"]
+
+        if avg >= 3.5:
+            action = f"Byt ut eller gör hårdvarugenomgång av {tname}."
+        elif avg >= 2.5:
+            action = "Planera förebyggande underhåll och firmware-uppdatering."
+        else:
+            action = "Övervaka – planera kapacitets- och stabilitetstest."
+
+        lines.append(
+            f"- {d['device_hostname']} ({d['site']}): {inc} incidenter, medelseverity {avg:.1f} → {action}"
+        )
+    lines.append("")  # luft
+else:
+    lines.append("Inga enheter över tröskeln för återkommande incidenter (≥3).")
+    lines.append("")
+
+# Visa enheter som varnade även förra veckan
+warn_again = [d for d in problem_rows if d["in_last_weeks_warnings"] == "yes"]
+if warn_again:
+    lines.append("⚠ ÅTERKOMMANDE PROBLEM (fanns i förra veckans varningar)")
+    lines.append("-" * 25)
+    for d in warn_again:
+        lines.append(f"- {d['device_hostname']} ({d['site']}): tidigare markerad som varning/offline")
+    lines.append("")  # tom rad för luft
+else:
+    lines.append("✓ Inga enheter varnade både denna och förra veckan.")
+    lines.append("")
+
+# --- skriv rapporten till fil ---
+OUT_DIR = "out"
+os.makedirs(OUT_DIR, exist_ok=True)
+report_path = os.path.join(OUT_DIR, "incident_analysis.txt")
+with open(report_path, "w", encoding="utf-8") as f:
+    f.write("\n".join(lines))
+print(f"[OK] Skrev {report_path}")
