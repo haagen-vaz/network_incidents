@@ -8,14 +8,15 @@ Total kostnad: 445 910,10 SEK
 
 EXECUTIVE SUMMARY
 -------------------------
-⚠ KOSTNAD: Dyraste incident: 45 678,90 SEK (SW-ACCESS-03 hardware).
+• Mest belastade site: Huvudkontor
+• Enheter med ≥3 incidenter: 3 st
 
 INCIDENTS PER SEVERITY
--------------------------
-Critical  :  10 st (19%) - Genomsnitt:  119 min resolution, 25 967,23 SEK/incident
-High      :  13 st (25%) - Genomsnitt:  108 min resolution, 8 251,60 SEK/incident
-Medium    :  17 st (33%) - Genomsnitt:  113 min resolution, 3 506,68 SEK/incident
-Low       :  12 st (23%) - Genomsnitt:  107 min resolution, 1 612,79 SEK/incident
+--------------------------------------------------------------------------------
+Critical  :  10 st (19%) - Genomsnitt:  119 min, 25 967,23 SEK/incident
+High      :  13 st (25%) - Genomsnitt:  108 min, 8 251,60 SEK/incident
+Medium    :  17 st (33%) - Genomsnitt:  113 min, 3 506,68 SEK/incident
+Low       :  12 st (23%) - Genomsnitt:  107 min, 1 612,79 SEK/incident
 
 STÖRSTA PÅVERKAN (>100 användare)
 --------------------------------------------------------------------------------
@@ -35,25 +36,14 @@ TOPP 5 DYRASTE INCIDENTS
 --------------------------------------------------------------------------------
 ticket       device             site           sev             kostnad  category
 --------------------------------------------------------------------------------
-TECH-2024-024 SW-ACCESS-03       Huvudkontor    critical  45 678,90 SEK  hardware
-TECH-2024-022 SW-DC-TOR-02       Datacenter     critical  34 567,50 SEK  connectivity
-TECH-2024-040 RT-LAGER-01        Lager          critical  28 765,50 SEK  connectivity
-TECH-2024-049 RT-MAL-01          Kontor Malmö   critical  26 789,75 SEK  hardware
-TECH-2024-037 RT-DR-01           Säkerhetskopia critical  24 567,25 SEK  connectivity
+TECH-2024-024 SW-ACCESS-03       Huvudkontor    critical      45 678,90  hardware
+TECH-2024-022 SW-DC-TOR-02       Datacenter     critical      34 567,50  connectivity
+TECH-2024-040 RT-LAGER-01        Lager          critical      28 765,50  connectivity
+TECH-2024-049 RT-MAL-01          Kontor Malmö   critical      26 789,75  hardware
+TECH-2024-037 RT-DR-01           Säkerhetskopia critical      24 567,25  connectivity
 
 REKOMMENDERAD ÅTGÄRDSPLAN
 -------------------------
-
-FÖRESLAGNA ÅTGÄRDER (baserat på återkommande incidenter)
--------------------------
-- SW-DC-TOR-02 (Datacenter): 4 incidenter, medelseverity 3.8 → Byt ut eller gör hårdvarugenomgång av switch.
-- RT-LAGER-01 (Lager): 3 incidenter, medelseverity 2.7 → Planera förebyggande underhåll och firmware-uppdatering.
-- SW-DR-01 (Säkerhetskopia): 3 incidenter, medelseverity 1.3 → Övervaka – planera kapacitets- och stabilitetstest.
-
-⚠ ÅTERKOMMANDE PROBLEM (fanns i förra veckans varningar)
--------------------------
-- SW-DC-TOR-02 (Datacenter): tidigare markerad som varning/offline
-- RT-LAGER-01 (Lager): tidigare markerad som varning/offline
-- AP-FLOOR2-02 (Huvudkontor): tidigare markerad som varning/offline
-- AP-LAGER-02 (Lager): tidigare markerad som varning/offline
-- SW-ACCESS-03 (Huvudkontor): tidigare markerad som varning/offline
+- SW-DC-TOR-02 (Datacenter): 4 incidenter → Byt ut eller gör hårdvarugenomgång.
+- RT-LAGER-01 (Lager): 3 incidenter → Planera förebyggande underhåll/uppdatering.
+- SW-DR-01 (Säkerhetskopia): 3 incidenter → Övervaka och följ upp nästa period.
